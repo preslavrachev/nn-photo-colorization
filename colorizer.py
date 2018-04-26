@@ -12,21 +12,28 @@ from skimage.color import lab2rgb, rgb2lab
 
 
 @easyargs
-def main(src_image_path, dest_image_path):
-    src_image_xy = turn_image_into_input_and_output(
-        src_image_path, target_size=(256, 256))
-    dest_image_xy = turn_image_into_input_and_output(dest_image_path)
-    model = create_and_train_model(*src_image_xy)
+def main(src_images_dir_path, target_image_path, output_image_path='result.jpg'):
+    src_images_xy = load_all_inputs(input_dir_path=src_images_dir_path,
+                                    target_size=(256, 256),
+                                    exclude_paths=[target_image_path, output_image_path])
+    dest_image_xy = turn_image_into_input_and_output(target_image_path)
+    model = create_and_train_model(*src_images_xy)
     colorize_image(dest_image_xy[0], model)
 
 
-def load_all_inputs(input_dir_path, target_size) -> [([], [])]:
-    all_x_y = [turn_image_into_input_and_output(input_dir_path + fn, target_size=target_size) \
-    for fn in os.listdir(input_dir_path) \
-    if re.match(r'.*\.jpg', fn)]
+def load_all_inputs(input_dir_path, target_size, exclude_paths=[]) -> (np.array, np.array):
+    '''
+    Loads all input images from the given directoy, and turns them into
+    respective model inputs and outputs
+    '''
+    all_x_y = [turn_image_into_input_and_output(input_dir_path + fn, target_size=target_size)
+               for fn in os.listdir(input_dir_path)
+               if re.match(r'.*\.jpg', fn) and fn not in exclude_paths]
 
-    all_x = np.array(list(map(lambda x: np.array(x[0]).reshape(*target_size, 1), all_x_y)))
-    all_y = np.array(list(map(lambda x: np.array(x[1]).reshape(*target_size, 2), all_x_y)))
+    all_x = np.array(
+        list(map(lambda x: np.array(x[0]).reshape(*target_size, 1), all_x_y)))
+    all_y = np.array(
+        list(map(lambda x: np.array(x[1]).reshape(*target_size, 2), all_x_y)))
     return all_x, all_y
 
 
