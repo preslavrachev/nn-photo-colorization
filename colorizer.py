@@ -100,12 +100,6 @@ def colorize_image(X, model, name='result.jpg'):
     cur[:, :, 0] = X[0][:, :, 0]
     cur[:, :, 1:] = output[0]
 
-    # imshow(rgb_image.astype('float32'))
-
-    #cur = (cur * [100, 255, 255]) - [0 ,128, 128]
-    # output
-
-    #rgb_image *= [100, 255, 255]
     cur = (cur * [100, 255, 255]) - [0, 128, 128]
     rgb_image = lab2rgb(cur)
     imsave(name, rgb_image)
