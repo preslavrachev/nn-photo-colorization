@@ -9,6 +9,7 @@ from keras.layers import Conv2D, InputLayer, UpSampling2D
 from keras.models import Sequential
 from keras.preprocessing.image import img_to_array, load_img
 from matplotlib.pyplot import imshow, imsave
+from PIL import Image, ImageOps
 from skimage.color import lab2rgb, rgb2lab
 
 
@@ -75,23 +76,12 @@ def load_and_resize_image(image_path, target_size=None) -> Image:
     # Returns
     # The loaded and resized PIL image
     '''
-    img = load_img(image_path, target_size=target_size)
-    width_offset = 0
-    height_offset = 0
+    img = Image.open(image_path)
 
-    while True:
-        if ((img.size[0] + width_offset) % 6 != 0):
-            width_offset += 1
-        elif ((img.size[1] + height_offset) % 6 != 0):
-            height_offset += 1
+    if target_size is None:
+        return img
         else:
-            break
-
-    if width_offset != 0 or height_offset != 0:
-        img = img.resize(
-            (img.size[0] + width_offset, img.size[1] + height_offset))
-
-    return img
+        return ImageOps.fit(img, target_size, Image.ANTIALIAS)
 
 
 def generate_randomly_cropped_image(original_image, size):
