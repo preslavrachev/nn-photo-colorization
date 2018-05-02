@@ -12,20 +12,24 @@ from matplotlib.pyplot import imshow, imsave
 from PIL import Image, ImageOps
 from skimage.color import lab2rgb, rgb2lab
 
+IMAGE_SIZE = (512, 512)
 
 @easyargs
 def main(src_images_dir_path, target_image_path, output_image_path='result.jpg'):
     paths = find_all_images_suitable_for_input(
         src_images_dir_path, exclude_paths=[target_image_path, output_image_path])
-    images = [load_and_resize_image(path) for path in paths]
-    crops = [generate_randomly_cropped_image(image, size=(512, 512))
+    images = [load_and_resize_image(path, target_size=IMAGE_SIZE) for path in paths]
+    crops = [generate_randomly_cropped_image(image, size=IMAGE_SIZE)
              for k in range(1, 10)
              for image in images]
-    src_images_xy = load_all_inputs(crops)
-    dest_image = load_and_resize_image(target_image_path)
-    dest_image_crop = generate_randomly_cropped_image(dest_image, size=(512, 512))
-    dest_image_xy = turn_image_into_input_and_output(dest_image_crop)
+    src_images_xy = load_all_inputs(images)
     model = create_and_train_model(*src_images_xy)
+
+    # prepare the black and white image
+    dest_image = load_and_resize_image(target_image_path, target_size=IMAGE_SIZE)
+    dest_image_xy = turn_image_into_input_and_output(dest_image)
+
+    # colorrize the black and white image using the model
     colorize_image(dest_image_xy[0], model)
 
 
@@ -35,7 +39,7 @@ def find_all_images_suitable_for_input(input_dir_path, exclude_paths=[]):
             if re.match(r'.*\.jpg', fn) and fn not in exclude_paths]
 
 
-def load_all_inputs(images, target_size=(512, 512)) -> (np.array, np.array):
+def load_all_inputs(images) -> (np.array, np.array):
     '''
     Loads all input images from the given directoy, and turns them into
     respective model inputs and outputs
@@ -93,9 +97,12 @@ def generate_randomly_cropped_image(original_image, size):
     return original_image.crop(box=(a, b, a + crop_w, b + crop_h))
 
 
-def create_and_train_model(X, Y, epochs=100):
+    input_width = X.shape[1]
+    input_height = X.shape[2]
+    input_channels = 1 # this is only the L channel (B&W)
+
     model = Sequential()
-    model.add(InputLayer(input_shape=(512, 512, 1)))
+    model.add(InputLayer(input_shape=(input_width, input_height, input_channels)))
     model.add(Conv2D(8, (3, 3), activation='relu', padding='same', strides=2))
     model.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
     model.add(Conv2D(16, (3, 3), activation='relu', padding='same', strides=2))
