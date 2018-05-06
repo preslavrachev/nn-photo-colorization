@@ -5,6 +5,7 @@ import pandas as pd
 import random
 import re
 from IPython.display import Image, display
+from keras.callbacks import TensorBoard
 from keras.layers import Conv2D, InputLayer, UpSampling2D
 from keras.models import Sequential
 from keras.preprocessing.image import img_to_array, load_img
@@ -119,7 +120,9 @@ def generate_randomly_cropped_image(original_image, size):
 
     # Finish model
     model.compile(optimizer='rmsprop', loss='mse')
-    model.fit(x=X, y=Y, batch_size=4, epochs=epochs, verbose=1)
+
+    tensorboard = TensorBoard(log_dir="./tensorboard")
+    model.fit(x=X, y=Y, batch_size=4, epochs=epochs, callbacks=[tensorboard], verbose=1)
 
     return model
 
