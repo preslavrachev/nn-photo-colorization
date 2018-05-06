@@ -34,9 +34,11 @@ def main(src_images_dir_path, target_image_path, output_image_path='result.jpg')
 
 
 def find_all_images_suitable_for_input(input_dir_path, exclude_paths=[]):
-    return [input_dir_path + fn
+    input_dir_path = input_dir_path[:-1] if input_dir_path[-1] == '/' else input_dir_path
+    exclude_fns = [os.path.basename(exclude_path) for exclude_path in exclude_paths if os.path.dirname(exclude_path) in input_dir_path]
+    return [input_dir_path + '/' + fn
             for fn in os.listdir(input_dir_path)
-            if re.match(r'.*\.jpg', fn) and fn not in exclude_paths]
+            if re.match(r'.*\.jpg', fn) and fn not in exclude_fns]
 
 
 def load_all_inputs(images) -> (np.array, np.array):
