@@ -61,7 +61,7 @@ def turn_image_into_input_and_output(image):
     Loads, resizes, and converts input images into inputs and outputs for the NN model
     '''
     lab_image = rgb2lab(image)
-    lab_image_norm = (lab_image + [0, 128, 128]) / [100, 255, 255]
+    lab_image_norm = (lab_image + [0, 128, 128]) / [100, 1, 1]
 
     # The input will be the black and white layer
     X = lab_image_norm[:, :, 0]
@@ -87,7 +87,7 @@ def load_and_resize_image(image_path, target_size=None) -> Image:
 
     if target_size is None:
         return img
-        else:
+    else:
         return ImageOps.fit(img, target_size, Image.ANTIALIAS)
 
 
@@ -99,7 +99,12 @@ def generate_randomly_cropped_image(original_image, size):
     b = random.randint(0, original_image_h - crop_h)
     return original_image.crop(box=(a, b, a + crop_w, b + crop_h))
 
+def load_q_kernels(shape):
+    print(shape)
+    pts_in_hull = np.load('resources/pts_in_hull.npy')
+    return((pts_in_hull + [128, 128]) / [255, 255]).reshape(shape)
 
+def create_and_train_model(X, Y, epochs=20):
     input_width = X.shape[1]
     input_height = X.shape[2]
     input_channels = 1 # this is only the L channel (B&W)
@@ -118,8 +123,11 @@ def generate_randomly_cropped_image(original_image, size):
     model.add(UpSampling2D((2, 2)))
     model.add(Conv2D(2, (3, 3), activation='sigmoid', padding='same'))
 
+    model.add(Conv2D(313, (1, 1)))
+    model.add(Conv2D(2, (1, 1), activation='softmax', kernel_initializer=load_q_kernels))
+
     # Finish model
-    model.compile(optimizer='rmsprop', loss='mse')
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
     tensorboard = TensorBoard(log_dir="./tensorboard")
     model.fit(x=X, y=Y, batch_size=4, epochs=epochs, callbacks=[tensorboard], verbose=1)
@@ -127,7 +135,7 @@ def generate_randomly_cropped_image(original_image, size):
     return model
 
 
-def colorize_image(X, model, name='result.jpg'):
+def colorize_image(X, model, name='result.jpg') -> Image:
     X = X.reshape(1, *X.shape)
     output = model.predict(X)
     cur = np.zeros((output.shape[1], output.shape[2], 3))
@@ -136,8 +144,9 @@ def colorize_image(X, model, name='result.jpg'):
 
     cur = (cur * [100, 255, 255]) - [0, 128, 128]
     rgb_image = lab2rgb(cur)
-    imsave(name, rgb_image)
+    colored_image = imsave(name, rgb_image)
 
+    return colored_image
 
 if __name__ == '__main__':
     # pylint: disable=no-value-for-parameter
